@@ -34,7 +34,6 @@ from __future__ import absolute_import, unicode_literals
 __version__ = '$Id$'
 #
 
-import re
 import signal
 
 willstop = False
@@ -53,7 +52,7 @@ def _signal_handler(signal, frame):
 signal.signal(signal.SIGINT, _signal_handler)
 
 import pywikibot
-from pywikibot import pagegenerators as pg, WikidataBot
+from pywikibot import pagegenerators as pg, WikidataBot, textlib
 
 docuReplacements = {'&params;': pywikibot.pagegenerators.parameterHelp}
 
@@ -81,6 +80,7 @@ class HarvestRobot(WikidataBot):
         self.fields = fields
         self.cacheSources()
         self.templateTitles = self.getTemplateSynonyms(self.templateTitle)
+        self.linkR = textlib.compileLinkR()
 
     def getTemplateSynonyms(self, title):
         """Fetch redirects of the title, so we can check against them."""
@@ -101,8 +101,6 @@ class HarvestRobot(WikidataBot):
         return titles
 
     def _template_link_target(self, item, link_text):
-        linked_page = None
-
         link = pywikibot.Link(link_text)
         linked_page = pywikibot.Page(link)
 
@@ -174,15 +172,12 @@ class HarvestRobot(WikidataBot):
                         else:
                             if claim.type == 'wikibase-item':
                                 # Try to extract a valid page
-                                match = re.search(pywikibot.link_regex, value)
-                                if not match:
-                                    pywikibot.output(
-                                        '%s field %s value %s is not a '
-                                        'wikilink. Skipping.'
-                                        % (claim.getID(), field, value))
-                                    continue
+                                match = pywikibot.link_regex.search(value)
+                                if match:
+                                    link_text = match.group(1)
+                                else:
+                                    link_text = value
 
-                                link_text = match.group(1)
                                 linked_item = self._template_link_target(
                                     item, link_text)
                                 if not linked_item:
@@ -191,6 +186,11 @@ class HarvestRobot(WikidataBot):
                                 claim.setTarget(linked_item)
                             elif claim.type in ('string', 'external-id'):
                                 claim.setTarget(value.strip())
+                            elif claim.type == 'url':
+                                match = self.linkR.search(value)
+                                if not match:
+                                    continue
+                                claim.setTarget(match.group('url'))
                             elif claim.type == 'commonsMedia':
                                 commonssite = pywikibot.Site('commons',
                                                              'commons')

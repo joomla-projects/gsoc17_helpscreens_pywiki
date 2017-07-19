@@ -196,7 +196,7 @@ version = '3.0'
 try:
     import subprocess
     date = subprocess.check_output(['git', 'log', '-1', '--format=%ci']).strip()
-    date = date.split(" ")[0].replace("-", "")
+    date = date.decode().split(' ')[0].replace('-', '')
     version = version + "." + date
 except Exception as e:
     print(e)
@@ -209,8 +209,8 @@ setup(
     version=version,
     description='Python MediaWiki Bot Framework',
     long_description=open('README.rst').read(),
-    keywords=('pywikibot python mediawiki bot wiki framework '
-              'wikimedia wikipedia pwb pywikipedia API'),
+    keywords=('pywikibot', 'python', 'mediawiki', 'bot', 'wiki', 'framework',
+              'wikimedia', 'wikipedia', 'pwb', 'pywikipedia', 'API'),
     maintainer='The Pywikibot team',
     maintainer_email='pywikibot@lists.wikimedia.org',
     license='MIT License',
